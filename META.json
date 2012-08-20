@@ -36,8 +36,7 @@
             "File::Find" : "0",
             "File::Temp" : "0",
             "Sub::Name" : "0",
-            "Test::More" : "0.88",
-            "perl" : "5.016"
+            "Test::More" : "0.88"
          }
       }
    },
@@ -54,7 +53,7 @@
          "web" : "https://github.com/doy/fun"
       }
    },
-   "version" : "0.02",
+   "version" : "0.03",
    "x_Dist_Zilla" : {
       "plugins" : [
          {

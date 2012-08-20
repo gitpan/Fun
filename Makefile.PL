@@ -13,8 +13,7 @@ my %WriteMakefileArgs = (
     'File::Find' => '0',
     'File::Temp' => '0',
     'Sub::Name' => '0',
-    'Test::More' => '0.88',
-    'perl' => '5.016'
+    'Test::More' => '0.88'
   },
   'CONFIGURE_REQUIRES' => {
     'Devel::CallParser' => '0',
@@ -31,7 +30,7 @@ my %WriteMakefileArgs = (
     'strict' => '0',
     'warnings' => '0'
   },
-  'VERSION' => '0.02',
+  'VERSION' => '0.03',
   'test' => {
     'TESTS' => 't/*.t'
   }
