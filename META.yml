@@ -10,6 +10,7 @@ build_requires:
   Test::More: 0.88
   perl: 5.016
 configure_requires:
+  Devel::CallParser: 0
   ExtUtils::MakeMaker: 6.30
 dynamic_config: 0
 generated_by: 'Dist::Zilla version 4.300020, CPAN::Meta::Converter version 2.120921'
@@ -29,7 +30,7 @@ resources:
   bugtracker: http://rt.cpan.org/Public/Dist/Display.html?Name=Fun
   homepage: http://metacpan.org/release/Fun
   repository: git://github.com/doy/fun.git
-version: 0.01
+version: 0.02
 x_Dist_Zilla:
   plugins:
     -
@@ -179,6 +180,14 @@ x_Dist_Zilla:
           phase: runtime
           type: requires
       name: Prereqs
+      version: 4.300020
+    -
+      class: Dist::Zilla::Plugin::Prereqs
+      config:
+        Dist::Zilla::Plugin::Prereqs:
+          phase: configure
+          type: requires
+      name: ConfigureRequires
       version: 4.300020
     -
       class: Dist::Zilla::Plugin::FinderCode

@@ -3,7 +3,7 @@ BEGIN {
   $Fun::AUTHORITY = 'cpan:DOY';
 }
 {
-  $Fun::VERSION = '0.01';
+  $Fun::VERSION = '0.02';
 }
 use strict;
 use warnings;
@@ -39,7 +39,7 @@ Fun - simple function signatures
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 SYNOPSIS
 
@@ -51,7 +51,7 @@ version 0.01
 
 =head1 DESCRIPTION
 
-This mdoule provides C<fun>, a new keyword which defines functions the same way
+This module provides C<fun>, a new keyword which defines functions the same way
 that C<sub> does, except allowing for function signatures. These signatures
 support defaults and slurpy arguments, but no other advanced features. The
 behavior should be equivalent to taking the signature, stripping out the
