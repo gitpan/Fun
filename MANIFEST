@@ -16,6 +16,7 @@ t/compile-time.t
 t/defaults.t
 t/name.t
 t/package.t
+t/readonly.t
 t/recursion.t
 xt/release/eol.t
 xt/release/no-tabs.t
