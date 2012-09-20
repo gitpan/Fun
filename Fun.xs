@@ -117,23 +117,6 @@ static SV *THX_parse_varname(pTHX_ const char *sigil)
 
 /* end stolen from Scope::Escape::Sugar */
 
-static XOP readonly_xop;
-
-static OP *pp_readonly(pTHX)
-{
-    dSP; dMARK;
-    SV** prevmark;
-
-    prevmark = MARK;
-    MARK++;
-    while (MARK <= SP) {
-        SvREADONLY_on(*MARK++);
-    }
-    SP = prevmark;
-
-    RETURN;
-}
-
 #define parse_parameter_default(i, padoffset) THX_parse_parameter_default(aTHX_ i, padoffset)
 static OP *THX_parse_parameter_default(pTHX_ IV i, PADOFFSET padoffset)
 {
@@ -170,8 +153,9 @@ static OP *THX_parse_parameter_default(pTHX_ IV i, PADOFFSET padoffset)
 #define parse_function_prototype() THX_parse_function_prototype(aTHX)
 static OP *THX_parse_function_prototype(pTHX)
 {
-    OP *myvars, *defaults, *get_args, *arg_assign, *readonly, *ret;
+    OP *myvars, *defaults, *get_args, *arg_assign;
     IV i = 0;
+    SV *seen_slurpy = NULL;
 
     demand_unichar('(', DEMAND_IMMEDIATE);
 
@@ -183,48 +167,46 @@ static OP *THX_parse_function_prototype(pTHX)
 
     myvars = newLISTOP(OP_LIST, 0, NULL, NULL);
     defaults = newLISTOP(OP_LINESEQ, 0, NULL, NULL);
-    readonly = newLISTOP(OP_CUSTOM, 0, newOP(OP_PUSHMARK, 0), NULL);
-    readonly->op_ppaddr = pp_readonly;
 
     for (;;) {
-        OP *pad_op, *readonly_pad_op;
+        OP *pad_op;
         char next;
         I32 type;
         SV *name;
-        PADOFFSET offset;
 
         lex_read_space(0);
         next = lex_peek_unichar(0);
         if (next == '$') {
             name = parse_scalar_varname();
-            offset = pad_add_my_scalar_sv(name);
+            if (seen_slurpy) {
+                croak("Can't declare parameter %"SVf" after slurpy parameter %"SVf, name, seen_slurpy);
+            }
             pad_op = newOP(OP_PADSV, 0);
-            pad_op->op_targ = offset;
-            readonly_pad_op = newOP(OP_PADSV, 0);
-            readonly_pad_op->op_targ = offset;
+            pad_op->op_targ = pad_add_my_scalar_sv(name);
         }
         else if (next == '@') {
             name = parse_array_varname();
-            offset = pad_add_my_array_sv(name);
+            if (seen_slurpy) {
+                croak("Can't declare parameter %"SVf" after slurpy parameter %"SVf, name, seen_slurpy);
+            }
             pad_op = newOP(OP_PADAV, 0);
-            pad_op->op_targ = offset;
-            readonly_pad_op = newOP(OP_PADAV, 0);
-            readonly_pad_op->op_targ = offset;
+            pad_op->op_targ = pad_add_my_array_sv(name);
+            seen_slurpy = name;
         }
         else if (next == '%') {
             name = parse_hash_varname();
-            offset = pad_add_my_hash_sv(name);
+            if (seen_slurpy) {
+                croak("Can't declare parameter %"SVf" after slurpy parameter %"SVf, name, seen_slurpy);
+            }
             pad_op = newOP(OP_PADHV, 0);
-            pad_op->op_targ = offset;
-            readonly_pad_op = newOP(OP_PADHV, 0);
-            readonly_pad_op->op_targ = offset;
+            pad_op->op_targ = pad_add_my_hash_sv(name);
+            seen_slurpy = name;
         }
         else {
             croak("syntax error");
         }
 
         op_append_elem(OP_LIST, myvars, pad_op);
-        op_append_elem(OP_CUSTOM, readonly, readonly_pad_op);
 
         lex_read_space(0);
         next = lex_peek_unichar(0);
@@ -262,14 +244,9 @@ static OP *THX_parse_function_prototype(pTHX)
     get_args = newUNOP(OP_RV2AV, 0, newGVOP(OP_GV, 0, gv_fetchpv("_", 0, SVt_PVAV)));
     arg_assign = newASSIGNOP(OPf_STACKED, myvars, 0, get_args);
 
-    ret = op_prepend_elem(OP_LINESEQ,
-                          newSTATEOP(0, NULL, arg_assign),
-                          defaults);
-    ret = op_append_elem(OP_LINESEQ,
-                         ret,
-                         readonly);
-
-    return ret;
+    return op_prepend_elem(OP_LINESEQ,
+                           newSTATEOP(0, NULL, arg_assign),
+                           defaults);
 }
 
 static OP *parse_fun(pTHX_ GV *namegv, SV *psobj, U32 *flagsp)
@@ -279,10 +256,10 @@ static OP *parse_fun(pTHX_ GV *namegv, SV *psobj, U32 *flagsp)
     CV *code;
     OP *arg_assign = NULL, *block, *name;
 
-    floor = start_subparse(0, CVf_ANON);
 
     lex_read_space(0);
     if (isIDFIRST(*(PL_parser->bufptr)) || *(PL_parser->bufptr) == ':') {
+        floor = start_subparse(0, 0);
         function_name = sv_2mortal(newSVpvs(""));
         while (isIDFIRST(*(PL_parser->bufptr)) || *(PL_parser->bufptr) == ':') {
             if (lex_peek_unichar(0) == ':') {
@@ -294,6 +271,9 @@ static OP *parse_fun(pTHX_ GV *namegv, SV *psobj, U32 *flagsp)
                 sv_catsv(function_name, parse_idword(""));
             }
         }
+    }
+    else {
+        floor = start_subparse(0, CVf_ANON);
     }
 
     lex_read_space(0);
@@ -353,8 +333,4 @@ BOOT:
 {
     cv_set_call_parser(get_cv("Fun::fun", 0), parse_fun, &PL_sv_undef);
     cv_set_call_checker(get_cv("Fun::fun", 0), check_fun, &PL_sv_undef);
-    XopENTRY_set(&readonly_xop, xop_name, "readonly");
-    XopENTRY_set(&readonly_xop, xop_desc, "readonly");
-    XopENTRY_set(&readonly_xop, xop_class, OA_LISTOP);
-    Perl_custom_op_register(aTHX_ pp_readonly, &readonly_xop);
 }

@@ -3,7 +3,7 @@ BEGIN {
   $Fun::AUTHORITY = 'cpan:DOY';
 }
 {
-  $Fun::VERSION = '0.04';
+  $Fun::VERSION = '0.05';
 }
 use strict;
 use warnings;
@@ -39,7 +39,7 @@ Fun - simple function signatures
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 SYNOPSIS
 

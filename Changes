@@ -1,5 +1,9 @@
 Revision history for Fun
 
+0.05  2012-09-20
+      - make function parameters read-write again
+      - fix error when closing over a variable from a named function
+
 0.04  2012-09-08
       - fix test for Carp <1.26
       - make function parameters readonly
